@@ -30,8 +30,9 @@ async function captureLocalSnapshot(){
  try{
   await new Promise((resolve,reject)=>{video.onloadedmetadata=resolve;video.onerror=reject;if(video.readyState>=1)resolve()});
   await video.play();
-  await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-  const w=video.videoWidth||640,h=video.videoHeight||480;
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  if(video.videoWidth<1||video.videoHeight<1)throw new Error('Кадр камеры ещё не готов');
+  const w=video.videoWidth,h=video.videoHeight;
   const shot=document.createElement('canvas');shot.width=w;shot.height=h;
   const context=shot.getContext('2d');context.drawImage(video,0,0,w,h);
   $('cameraShot').src=shot.toDataURL('image/jpeg',.86);
@@ -45,6 +46,6 @@ function win(){if(!active)return;active=false;$('status').textContent='ВЫХО�
 function point(e){let r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*600/r.width,y:(e.clientY-r.top)*600/r.height}}
 function move(e){if(!active||!drag)return;let p=point(e);if(Math.hypot(p.x-pos.x,p.y-pos.y)>100)return;if(wall(p.x,p.y)){fail();return}pos=p;draw();if(grid[Math.floor(p.y/S)]?.[Math.floor(p.x/S)]==='E')win()}
 canvas.addEventListener('pointerdown',e=>{let p=point(e);if(Math.hypot(p.x-pos.x,p.y-pos.y)<38){drag=true;canvas.setPointerCapture(e.pointerId)}});canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
-$('continue').onclick=async()=>{if(!await enableCamera())return;$('intro').classList.add('hidden');$('game').classList.remove('hidden');$('vignette').classList.remove('hidden');parse();draw();active=true;startAudio()};$('soundToggle').onclick=toggleSound;$('restart').onclick=()=>window.location.reload();
+$('continue').onclick=async()=>{const button=$('continue');if(button.disabled)return;button.disabled=true;button.textContent='ОЖИДАНИЕ ДОСТУПА К КАМЕРЕ…';const granted=await enableCamera();const live=!!cameraStream&&cameraStream.getVideoTracks().some(track=>track.readyState==='live');if(!granted||!live){button.disabled=false;button.textContent='ЗАПУСТИТЬ ИГРУ';return;}if($('intro').classList.contains('hidden')||!$('game').classList.contains('hidden'))return;$('intro').classList.add('hidden');$('game').classList.remove('hidden');$('vignette').classList.remove('hidden');parse();draw();active=true;startAudio();button.disabled=false;button.textContent='ЗАПУСТИТЬ ИГРУ'};$('soundToggle').onclick=toggleSound;$('restart').onclick=()=>window.location.reload();
 })();
 </script></body></html>
