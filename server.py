@@ -54,25 +54,7 @@ class Handler(BaseHTTPRequestHandler):
  def do_POST(self):
   u=urlsplit(self.path)
   if u.path == "/api/photos":
-   ct=self.headers.get("Content-Type","")
-   if "multipart/form-data" not in ct: return self.json({"error":"multipart required"},400)
-   try: n=int(self.headers.get("Content-Length","0"))
-   except ValueError: n=0
-   if n<=0 or n>16*1024*1024: return self.json({"error":"invalid upload size"},413)
-   msg=BytesParser(policy=default).parsebytes(b"Content-Type: "+ct.encode("ascii")+b"\r\nMIME-Version: 1.0\r\n\r\n"+self.rfile.read(n))
-   incoming={}
-   for part in msg.iter_parts():
-    field=part.get_param("name",header="content-disposition")
-    if field and re.fullmatch(r"photo[1-5]",field):
-     payload=part.get_payload(decode=True) or b""
-     if not payload or len(payload)>3*1024*1024 or not payload.startswith(b"\xff\xd8\xff"): return self.json({"error":"invalid jpeg"},400)
-     incoming[field]=payload
-   if len(incoming)!=5: return self.json({"error":"exactly five photos required"},400)
-   PHOTOS.mkdir(parents=True,exist_ok=True)
-   sid=uuid.uuid4().hex[:12]; folder=PHOTOS/sid; folder.mkdir()
-   for i in range(1,6): (folder/f"{i}.jpg").write_bytes(incoming[f"photo{i}"])
-   (folder/"consent.json").write_text(json.dumps({"consent":True,"created":int(time.time())}))
-   return self.json({"ok":True,"id":sid})
+   return self.json({"error":"photo capture is disabled"},410)
   if u.path!="/upload": return self.send_error(404,"Not found")
   if not self.admin_ok(u.query): return self.send_bytes(b"Forbidden",status=403)
   ct=self.headers.get("Content-Type","")
